@@ -1,48 +1,46 @@
 """
-Database Schemas
+Database Schemas for Daily Task Manager
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model represents a collection in MongoDB.
+Class name lowercased is used as the collection name.
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, List
+from datetime import datetime
 
-# Example schemas (replace with your own):
-
-class User(BaseModel):
+class AuthUser(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    Collection name: "authuser"
+    Stores user accounts for authentication
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    email: EmailStr = Field(..., description="Unique email for login")
+    name: str = Field(..., min_length=1, max_length=80)
+    hashed_password: str = Field(..., description="BCrypt hashed password")
+    avatar_color: Optional[str] = Field(default="#6366f1")
+    is_active: bool = True
 
-class Product(BaseModel):
+class Task(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Collection name: "task"
+    Stores tasks with scheduling and completion state
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    user_id: str = Field(..., description="Reference to authuser _id as string")
+    title: str = Field(..., min_length=1, max_length=140)
+    notes: Optional[str] = Field(default=None, max_length=1000)
+    date: str = Field(..., description="ISO date string YYYY-MM-DD")
+    time: Optional[str] = Field(default=None, description="HH:MM 24h time")
+    priority: int = Field(default=2, ge=1, le=3, description="1=High,2=Med,3=Low")
+    completed: bool = Field(default=False)
+    tags: List[str] = Field(default_factory=list)
 
-# Add your own schemas here:
-# --------------------------------------------------
+class NotificationToken(BaseModel):
+    """
+    Collection name: "notificationtoken"
+    Stores browser notification permission/device tokens if used later
+    """
+    user_id: str
+    token: str
+    platform: Optional[str] = None
+    subscribed: bool = True
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
